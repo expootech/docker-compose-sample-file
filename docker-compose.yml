@@ -1,0 +1,67 @@
+version: '3'
+
+services:
+  ic_backend: 
+    build: ../chatgpt-backend
+    container_name: ic_backend
+    ports:
+      - 8000:8000
+    environment:
+      - API_V1_STR="/api/v1"
+      - PROJECT_NAME="iConverse.ai"
+      - SQLALCHEMY_DATABASE_URI="postgresql://localhost:5432/fastapi_db"
+      - OPENAI_API_KEY="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"
+      - DISPATCH_ENCRYPTION_KEY=""
+      - DATABASE_HOSTNAME="iconverseDB"
+      - DATABASE_CREDENTIALS="test:test"
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - '../chatgpt-backend:/app'
+    networks:
+      - ic_network
+    restart: always
+
+  ic_frontend:
+    build: ../chatgpt-web-front-end
+    container_name: ic_frontend
+    ports: 
+      - 3000:3000
+    environment:
+      - NUXT_HOST=0.0.0.0
+      - NUXT_PORT=3000
+      - API_BASE_URL=http://ic_backend:8000
+    volumes:
+      - '../chatgpt-web-front-end:/app'
+    networks:
+      - ic_network
+    restart: always
+
+  webserver:
+    image: nginx:mainline-alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      # - web-root:/var/www/html
+      - ./views:/var/www/html
+      - ../iconverse-nginx:/etc/nginx/conf.d
+    depends_on:
+      - ic_backend
+      - ic_frontend
+    networks:
+      - ic_network
+  
+volumes:
+  web-root:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./views
+      o: bind
+
+networks:
+  ic_network:
+    driver: bridge 
+    
